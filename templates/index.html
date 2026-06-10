@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MetaGen — Générateur de méta descriptions SEO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:         #F7F6F2;
+      --white:      #FFFFFF;
+      --text:       #1A1A1A;
+      --muted:      #6B7280;
+      --border:     #E5E3DC;
+      --green:      #4A7C6F;
+      --green-light:#EBF3F1;
+      --green-dark: #3A6259;
+      --orange:     #D97706;
+      --orange-bg:  #FEF3C7;
+      --red:        #DC2626;
+      --card:       #FFFFFF;
+      --shadow:     0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+      --shadow-lg:  0 4px 24px rgba(0,0,0,.10);
+      --radius:     12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--white);
+      border-right: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: var(--green);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .logo-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.5px;
+    }
+    .logo-tag {
+      font-size: .7rem;
+      font-weight: 500;
+      color: var(--green);
+      background: var(--green-light);
+      padding: .15rem .5rem;
+      border-radius: 50px;
+      margin-left: auto;
+    }
+
+    .sidebar-section h3 {
+      font-size: .7rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .75rem;
+    }
+
+    .form-field { display: flex; flex-direction: column; gap: .4rem; }
+    .form-field label {
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .form-field input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      padding: .7rem 1rem;
+      font-size: .92rem;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+    }
+    .form-field input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(74,124,111,.12);
+      background: var(--white);
+    }
+    .form-field input::placeholder { color: #b0b7c3; }
+
+    .btn-analyze {
+      width: 100%;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: 9px;
+      padding: .85rem 1rem;
+      font-size: .95rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s, transform .1s, opacity .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+    }
+    .btn-analyze:hover  { background: var(--green-dark); }
+    .btn-analyze:active { transform: scale(.99); }
+    .btn-analyze:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      display: none;
+    }
+    .btn-analyze.loading .spinner   { display: block; }
+    .btn-analyze.loading .btn-label { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .sidebar-tips {
+      margin-top: auto;
+      background: var(--green-light);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .sidebar-tips h4 {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--green-dark);
+      margin-bottom: .5rem;
+    }
+    .sidebar-tips ul {
+      padding-left: 1.1rem;
+      font-size: .78rem;
+      color: var(--green-dark);
+      line-height: 1.6;
+    }
+
+    /* ── Main ── */
+    .main {
+      padding: 2.5rem 2rem;
+      max-width: 900px;
+    }
+
+    .main-header {
+      margin-bottom: 2rem;
+    }
+    .main-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      color: var(--text);
+    }
+    .main-header p {
+      font-size: .9rem;
+      color: var(--muted);
+      margin-top: .3rem;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem 2rem;
+      text-align: center;
+      gap: 1rem;
+    }
+    .empty-state .empty-icon {
+      font-size: 3rem;
+      filter: grayscale(.3);
+    }
+    .empty-state h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .empty-state p {
+      font-size: .88rem;
+      color: var(--muted);
+      max-width: 340px;
+      line-height: 1.6;
+    }
+
+    /* ── Error ── */
+    .error-box {
+      background: #FEF2F2;
+      border: 1.5px solid #FECACA;
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      color: var(--red);
+      font-size: .875rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Section titles ── */
+    .section-label {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .section-label .badge {
+      background: var(--green-light);
+      color: var(--green);
+      font-size: .68rem;
+      font-weight: 700;
+      padding: .15rem .55rem;
+      border-radius: 50px;
+    }
+
+    /* ── SERP Cards ── */
+    .serp-list {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .serp-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      transition: border-color .2s, box-shadow .2s;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: .75rem;
+      align-items: flex-start;
+    }
+    .serp-card:hover {
+      border-color: var(--green);
+      box-shadow: var(--shadow);
+    }
+
+    .serp-rank {
+      width: 28px; height: 28px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .serp-body {}
+    .serp-domain {
+      font-size: .75rem;
+      color: var(--green);
+      font-weight: 500;
+      margin-bottom: .2rem;
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+    }
+    .serp-domain::before {
+      content: '🌐';
+      font-size: .7rem;
+    }
+    .serp-title {
+      font-size: .92rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: .3rem;
+      line-height: 1.35;
+    }
+    .serp-desc {
+      font-size: .82rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .serp-desc.empty {
+      font-style: italic;
+      color: #b0b7c3;
+    }
+
+    /* ── Proposal Cards ── */
+    .proposals-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .proposal-card {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .proposal-card:hover {
+      border-color: var(--green);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .proposal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: .75rem;
+      gap: .75rem;
+      flex-wrap: wrap;
+    }
+
+    .proposal-format {
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .proposal-actions {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .char-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .2rem .65rem;
+      border-radius: 50px;
+    }
+    .char-badge.ok      { background: var(--green-light); color: var(--green); }
+    .char-badge.warning { background: var(--orange-bg);   color: var(--orange); }
+
+    .score-badge {
+      font-size: .72rem;
+      font-weight: 800;
+      padding: .2rem .65rem;
+      border-radius: 50px;
+      letter-spacing: .01em;
+    }
+    .score-badge.high { background: var(--green-light); color: var(--green-dark); }
+    .score-badge.mid  { background: var(--orange-bg);   color: var(--orange); }
+    .score-badge.low  { background: #FEF2F2;            color: var(--red); }
+
+    .best-tag {
+      font-size: .68rem;
+      font-weight: 700;
+      background: #FEF9C3;
+      color: #854D0E;
+      padding: .15rem .55rem;
+      border-radius: 50px;
+      border: 1px solid #FDE047;
+    }
+
+    .proposal-card.top-ranked {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(74,124,111,.15), var(--shadow);
+    }
+
+    .btn-copy {
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      padding: .3rem .75rem;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      font-family: inherit;
+    }
+    .btn-copy:hover {
+      background: var(--green-light);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .btn-copy.copied {
+      background: var(--green-light);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .proposal-text {
+      font-size: .92rem;
+      line-height: 1.65;
+      color: var(--text);
+      background: var(--bg);
+      border-radius: 8px;
+      padding: .85rem 1rem;
+      border-left: 3px solid var(--green);
+    }
+
+    /* ── Inline loading ── */
+    .loading-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      gap: 1.25rem;
+      text-align: center;
+    }
+    .loading-state.visible { display: flex; }
+
+    .loader-ring {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    .loading-state p {
+      font-size: .9rem;
+      color: var(--muted);
+    }
+    .loading-state strong { color: var(--green); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--text);
+      color: white;
+      padding: .75rem 1.25rem;
+      border-radius: 9px;
+      font-size: .85rem;
+      font-weight: 500;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+      z-index: 100;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .main { padding: 1.5rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">📝</div>
+      <span class="logo-name">MetaGen</span>
+      <span class="logo-tag">SEO</span>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Analyse SERP</h3>
+      <div class="form-field" style="margin-bottom:.75rem">
+        <label for="keyword">Mot-clé ou requête cible</label>
+        <input
+          type="text"
+          id="keyword"
+          placeholder="ex : pompe à chaleur prix"
+          autocomplete="off"
+          autofocus
+        />
+      </div>
+      <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
+        <div class="spinner"></div>
+        <span class="btn-label">🔍 Analyser</span>
+      </button>
+    </div>
+
+    <div class="sidebar-tips">
+      <h4>💡 Bonnes pratiques</h4>
+      <ul>
+        <li>Cible 140–160 caractères</li>
+        <li>Commence par le mot-clé</li>
+        <li>Inclus un appel à l'action</li>
+        <li>Utilise des chiffres ou urgence</li>
+        <li>Évite le keyword stuffing</li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="main-header">
+      <h1>Générateur de méta descriptions</h1>
+      <p>Analysez les 10 premiers résultats Google et générez 5 propositions optimisées pour le CTR.</p>
+    </div>
+
+    <!-- État vide -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🔎</div>
+      <h2>Entrez un mot-clé pour commencer</h2>
+      <p>L'outil analyse les 10 résultats en tête de Google et génère 5 méta descriptions optimisées, en français, entre 140 et 160 caractères.</p>
+    </div>
+
+    <!-- Chargement -->
+    <div class="loading-state" id="loadingState">
+      <div class="loader-ring"></div>
+      <p>Analyse des <strong>10 premiers résultats Google</strong>…<br>
+         Extraction des mots-clés et génération des propositions.</p>
+    </div>
+
+    <!-- Contenu dynamique -->
+    <div id="results" style="display:none">
+
+      <!-- Erreur -->
+      <div class="error-box" id="errorBox" style="display:none">
+        <span>⚠️</span>
+        <span id="errorMsg"></span>
+      </div>
+
+      <!-- 5 Propositions (en premier) -->
+      <div id="proposalsSection">
+        <div class="section-label">
+          Propositions générées <span class="badge">5</span>
+        </div>
+        <div class="proposals-list" id="proposalsList"></div>
+      </div>
+
+      <!-- Top 10 SERP -->
+      <div id="serpSection" style="margin-top:2.5rem">
+        <div class="section-label">
+          Résultats SERP analysés <span class="badge" id="serpCount">0</span>
+        </div>
+        <div class="serp-list" id="serpList"></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✅ Copié dans le presse-papier !</div>
+
+<script>
+  let currentKeyword = '';
+
+  // ── Entrée clavier ──
+  document.getElementById('keyword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runAnalysis();
+  });
+
+  // ── Analyse principale ──
+  async function runAnalysis() {
+    const keyword = document.getElementById('keyword').value.trim();
+    if (!keyword) {
+      document.getElementById('keyword').focus();
+      return;
+    }
+
+    currentKeyword = keyword;
+    setLoading(true);
+
+    try {
+      const res  = await fetch('/analyze', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ keyword }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        showError(data.error || 'Erreur inattendue. Réessayez.');
+        setLoading(false);
+        return;
+      }
+
+      renderResults(data);
+    } catch (err) {
+      showError('Impossible de contacter le serveur. Vérifiez votre connexion.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── États UI ──
+  function setLoading(loading) {
+    const btn   = document.getElementById('analyzeBtn');
+    const empty = document.getElementById('emptyState');
+    const load  = document.getElementById('loadingState');
+    const res   = document.getElementById('results');
+
+    btn.disabled = loading;
+    btn.classList.toggle('loading', loading);
+
+    if (loading) {
+      empty.style.display = 'none';
+      load.classList.add('visible');
+      res.style.display   = 'none';
+    } else {
+      load.classList.remove('visible');
+    }
+  }
+
+  function showError(msg) {
+    const results  = document.getElementById('results');
+    const errorBox = document.getElementById('errorBox');
+    const errorMsg = document.getElementById('errorMsg');
+    const empty    = document.getElementById('emptyState');
+
+    empty.style.display    = 'none';
+    results.style.display  = 'block';
+    errorBox.style.display = 'flex';
+    errorMsg.textContent   = msg;
+
+    document.getElementById('proposalsSection').style.display = 'none';
+    document.getElementById('serpSection').style.display     = 'none';
+  }
+
+  // ── Rendu des résultats ──
+  function renderResults(data) {
+    const empty    = document.getElementById('emptyState');
+    const results  = document.getElementById('results');
+    const errorBox = document.getElementById('errorBox');
+
+    empty.style.display    = 'none';
+    results.style.display  = 'block';
+    errorBox.style.display = 'none';
+
+    document.getElementById('serpSection').style.display      = 'block';
+    document.getElementById('proposalsSection').style.display = 'block';
+
+    // SERP
+    const serpList  = document.getElementById('serpList');
+    const serpCount = document.getElementById('serpCount');
+    serpCount.textContent = data.results.length;
+    serpList.innerHTML    = '';
+
+    data.results.forEach((r, i) => {
+      const desc = r.description
+        ? `<div class="serp-desc">${escHtml(r.description)}</div>`
+        : `<div class="serp-desc empty">Aucune méta description détectée</div>`;
+
+      serpList.insertAdjacentHTML('beforeend', `
+        <div class="serp-card">
+          <div class="serp-rank">${i + 1}</div>
+          <div class="serp-body">
+            <div class="serp-domain">${escHtml(r.domain)}</div>
+            <div class="serp-title">${escHtml(r.title)}</div>
+            ${desc}
+          </div>
+        </div>
+      `);
+    });
+
+    // Propositions (déjà triées par score décroissant)
+    const propList = document.getElementById('proposalsList');
+    propList.innerHTML = '';
+
+    data.proposals.forEach((p, i) => {
+      const charClass  = p.status === 'ok' ? 'ok' : 'warning';
+      const charIcon   = p.status === 'ok' ? '✓' : '⚠';
+      const scoreClass = p.score >= 85 ? 'high' : p.score >= 65 ? 'mid' : 'low';
+      const topClass   = i === 0 ? ' top-ranked' : '';
+      const bestTag    = i === 0 ? '<span class="best-tag">🥇 Meilleure</span>' : '';
+
+      propList.insertAdjacentHTML('beforeend', `
+        <div class="proposal-card${topClass}" id="prop-${i}">
+          <div class="proposal-header">
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+              <span class="proposal-format">${escHtml(p.format)}</span>
+              ${bestTag}
+            </div>
+            <div class="proposal-actions">
+              <span class="score-badge ${scoreClass}">${p.score}/100</span>
+              <span class="char-badge ${charClass}">${charIcon} ${p.length} car.</span>
+              <button class="btn-copy" onclick="copyProposal(${i})" id="copy-${i}">
+                📋 Copier
+              </button>
+            </div>
+          </div>
+          <div class="proposal-text" id="text-${i}">${escHtml(p.text)}</div>
+        </div>
+      `);
+    });
+
+    // Scroll vers les résultats
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Copier ──
+  function copyProposal(i) {
+    const text = document.getElementById(`text-${i}`).textContent;
+    const btn  = document.getElementById(`copy-${i}`);
+
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = '✅ Copié !';
+      showToast();
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋 Copier';
+      }, 2500);
+    });
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  // ── Sécurité XSS ──
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+
+</body>
+</html>
